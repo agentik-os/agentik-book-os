@@ -44,7 +44,13 @@ async function sendFile(chat: number, path: string, caption?: string) {
     const buf = await Bun.file(path).arrayBuffer(); const name = path.split("/").pop() || "file"; const ext = (name.split(".").pop() || "").toLowerCase();
     const method = ["png", "jpg", "jpeg", "webp"].includes(ext) ? "sendPhoto" : "sendDocument"; const field = method === "sendPhoto" ? "photo" : "document";
     const fd = new FormData(); fd.append("chat_id", String(chat)); if (caption) fd.append("caption", caption.slice(0, 1024)); fd.append(field, new Blob([buf]), name);
-    const r: any = await (await fetch(`${API}/${method}`, { method: "POST", body: fd })).json(); return !!r?.ok;
+    const r: any = await (await fetch(`${API}/${method}`, { method: "POST", body: fd })).json();
+    if (r?.ok) return true;
+    if (method === "sendPhoto") { // oversized image → fall back to a document so it still arrives
+      const fd2 = new FormData(); fd2.append("chat_id", String(chat)); if (caption) fd2.append("caption", caption.slice(0, 1024)); fd2.append("document", new Blob([buf]), name);
+      const r2: any = await (await fetch(`${API}/sendDocument`, { method: "POST", body: fd2 })).json(); return !!r2?.ok;
+    }
+    return false;
   } catch { return false; }
 }
 async function sendVoice(chat: number, ogg: Uint8Array) { const fd = new FormData(); fd.append("chat_id", String(chat)); fd.append("voice", new Blob([ogg], { type: "audio/ogg" }), "voice.ogg"); try { return await (await fetch(`${API}/sendVoice`, { method: "POST", body: fd })).json(); } catch { return { ok: false }; } }
@@ -136,7 +142,7 @@ function renderDiagram(code: string, title: string, outBase: string): Diagram {
   const viewer = `${outBase}.view.html`; try { writeFileSync(viewer, diagramHtml(title, svg || "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'></svg>", uri)); } catch {}
   return { title, svg, png, viewer };
 }
-const DIAGRAM_MARK = /\[\[DIAGRAM:\s*([\s\S]+?)\s*\]\]/g;   // code only — | collides with Mermaid edge labels
+const DIAGRAM_MARK = /\[\[DIAGRAM:\s*([\s\S]+?)\s*\]\](?!\])/g;   // code only; (?!\]) keeps a node's trailing ] out of the marker close
 const SEND_MARK = /\[\[SEND:\s*([^\]|]+?)(?:\s*\|\s*([^\]]+))?\]\]/g;
 const DTOKEN = (i: number) => `DIAGRAM${i}`;
 function slug(s: string): string { return (s || "").normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/mode\s*[:·-]?\s*\w+/i, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "diagram"; }
