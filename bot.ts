@@ -110,8 +110,9 @@ const MERMAID_PP = `{"args":["--no-sandbox","--disable-setuid-sandbox","--disabl
 function sanitizeMermaid(code: string): string {
   let c = code.trim();
   c = c.replace(/^```(?:mermaid)?\s*/i, "").replace(/```\s*$/i, "").trim();
-  c = c.replace(/\\n/g, "<br/>");
-  c = c.replace(/\s*\|\s*[A-Za-z][^|\n\]]{3,}\s*$/, "");
+  c = c.replace(/\\n/g, "<br/>");   // literal \n in a label → Mermaid line break
+  // strip only a LEAKED trailing "| Multi Word Title" (has a space); a single-token edge target is safe
+  c = c.replace(/\s*\|\s*[A-Za-z][^|\n\]]*\s[^|\n\]]*\s*$/, "");
   return c.trim();
 }
 function mermaidSvg(code: string, outBase: string): string | null {
