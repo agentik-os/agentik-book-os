@@ -1,0 +1,58 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>__TITLE__</title>
+<style>
+:root{--ink:#0f172a;--muted:#64748b;--accent:#6d5efc;--dot:#e2e6f0;--glass:rgba(255,255,255,.78);--line:#e6e8f0}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#fff;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#stage{position:fixed;inset:0;overflow:hidden;background-color:#fff;background-image:radial-gradient(var(--dot) 1.5px,transparent 1.5px);background-size:22px 22px;background-position:-11px -11px;cursor:grab;touch-action:none}
+#stage.drag{cursor:grabbing}
+#wrap{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform}
+#wrap svg{display:block}#wrap svg rect{rx:12px;ry:12px}
+.title{position:fixed;left:14px;top:calc(12px + env(safe-area-inset-top));z-index:5;font-weight:600;font-size:13px;color:var(--muted);background:var(--glass);border:1px solid var(--line);padding:8px 13px;border-radius:999px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);max-width:70vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:2px;padding:6px;background:var(--glass);border:1px solid var(--line);border-radius:16px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 10px 30px -12px rgba(2,6,23,.35)}
+.bar button{display:grid;place-items:center;width:42px;height:42px;border:none;background:transparent;color:var(--ink);border-radius:11px;cursor:pointer;transition:background .12s,transform .08s}
+.bar button:hover{background:rgba(109,94,252,.10);color:var(--accent)}
+.bar button:active{transform:scale(.90)}
+.bar .sep{width:1px;height:22px;background:var(--line);margin:0 4px}
+.bar svg{width:20px;height:20px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.pct{min-width:44px;text-align:center;font-size:12px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+</style></head><body>
+<div id="stage"><div id="wrap">__SVG__</div></div>
+<div class="title">__TITLE__</div>
+<div class="bar">
+ <button id="out" title="Zoom out"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="20" y1="20" x2="16.5" y2="16.5"/></svg></button>
+ <span class="pct" id="pct">100%</span>
+ <button id="in" title="Zoom in"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="20" y1="20" x2="16.5" y2="16.5"/></svg></button>
+ <div class="sep"></div>
+ <button id="fit" title="Fit to screen"><svg viewBox="0 0 24 24"><path d="M4 9V5a1 1 0 0 1 1-1h4"/><path d="M20 9V5a1 1 0 0 0-1-1h-4"/><path d="M4 15v4a1 1 0 0 0 1 1h4"/><path d="M20 15v4a1 1 0 0 1-1 1h-4"/></svg></button>
+ <button id="exp" title="Export PNG"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></button>
+ <button id="shr" title="Share"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg></button>
+</div>
+<script>
+const stage=document.getElementById('stage'),wrap=document.getElementById('wrap'),svg=wrap.querySelector('svg'),pct=document.getElementById('pct');
+let sw=0,sh=0;(function(){const vb=svg.viewBox&&svg.viewBox.baseVal;sw=(vb&&vb.width)||svg.getBoundingClientRect().width||800;sh=(vb&&vb.height)||svg.getBoundingClientRect().height||600;svg.setAttribute('width',sw);svg.setAttribute('height',sh);})();
+let k=1,x=0,y=0,fit=1;
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+function apply(){wrap.style.transform='translate('+x+'px,'+y+'px) scale('+k+')';pct.textContent=Math.round(k/fit*100)+'%';}
+function fitView(){const r=stage.getBoundingClientRect();fit=Math.min(r.width/sw,r.height/sh)*0.9;k=fit;x=(r.width-sw*k)/2;y=(r.height-sh*k)/2;apply();}
+function zoomAt(f,cx,cy){const r=stage.getBoundingClientRect();cx=cx==null?r.width/2:cx;cy=cy==null?r.height/2:cy;const nk=clamp(k*f,fit*0.4,fit*10);x=cx-(cx-x)*(nk/k);y=cy-(cy-y)*(nk/k);k=nk;apply();}
+document.getElementById('in').onclick=()=>zoomAt(1.25);
+document.getElementById('out').onclick=()=>zoomAt(0.8);
+document.getElementById('fit').onclick=fitView;
+stage.addEventListener('wheel',e=>{e.preventDefault();zoomAt(e.deltaY<0?1.12:0.892,e.clientX,e.clientY);},{passive:false});
+// drag to pan (mouse + single touch) and pinch to zoom (two touches)
+let pts=new Map(),last=null,pd=0;
+stage.addEventListener('pointerdown',e=>{stage.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});stage.classList.add('drag');if(pts.size===1)last={x:e.clientX,y:e.clientY};});
+stage.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});const a=[...pts.values()];if(a.length===2){const d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);const mx=(a[0].x+a[1].x)/2,my=(a[0].y+a[1].y)/2;if(pd)zoomAt(d/pd,mx,my);pd=d;}else if(last){x+=e.clientX-last.x;y+=e.clientY-last.y;last={x:e.clientX,y:e.clientY};apply();}});
+function up(e){pts.delete(e.pointerId);if(pts.size<2)pd=0;if(pts.size===0){last=null;stage.classList.remove('drag');}else last=[...pts.values()][0];}
+stage.addEventListener('pointerup',up);stage.addEventListener('pointercancel',up);
+stage.addEventListener('dblclick',fitView);
+// export / share as PNG. Prefer the server-rendered PNG embedded as a data URI (perfect
+// text, incl. foreignObject labels a canvas can't rasterize); fall back to canvas.
+const EMB="__PNG__";
+async function pngBlob(){if(EMB&&EMB.startsWith('data:'))return await (await fetch(EMB)).blob();return await new Promise((res,rej)=>{const data=new XMLSerializer().serializeToString(svg);const img=new Image();const url=URL.createObjectURL(new Blob([data],{type:'image/svg+xml;charset=utf-8'}));img.onload=()=>{const c=document.createElement('canvas');c.width=Math.round(sw*2);c.height=Math.round(sh*2);const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);c.toBlob(b=>b?res(b):rej(),'image/png');};img.onerror=rej;img.src=url;});}
+function dl(b,n){const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(u),1500);}
+document.getElementById('exp').onclick=async()=>{try{dl(await pngBlob(),(document.title||'diagram')+'.png');}catch(e){}};
+document.getElementById('shr').onclick=async()=>{try{const b=await pngBlob();const f=new File([b],(document.title||'diagram')+'.png',{type:'image/png'});if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f],title:document.title});else dl(b,(document.title||'diagram')+'.png');}catch(e){}};
+addEventListener('resize',fitView);fitView();
+</script></body></html>

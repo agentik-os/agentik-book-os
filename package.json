@@ -1,0 +1,13 @@
+{
+  "name": "agentik-book-os",
+  "version": "1.0.0",
+  "private": false,
+  "type": "module",
+  "description": "A personal librarian / learning engine on your own Telegram bot. Turns any book, idea or decision into understanding, durable memory and action.",
+  "scripts": {
+    "start": "bun run bot.ts",
+    "setup": "bash setup.sh"
+  },
+  "dependencies": {},
+  "license": "MIT"
+}
